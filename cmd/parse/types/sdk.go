@@ -25,7 +25,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
+	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client/cli"
 
 	"github.com/forbole/juno/v5/types/config"
 	appparams "github.com/forbole/juno/v5/types/params"

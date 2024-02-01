@@ -7,16 +7,18 @@ import (
 	"reflect"
 	"unsafe"
 
-	db "github.com/cometbft/cometbft-db"
-	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "cosmossdk.io/store/types"
+	"github.com/cosmos/cosmos-sdk/codec"
 
+	sdklog "cosmossdk.io/log"
+	"cosmossdk.io/store"
+	"cosmossdk.io/store/metrics"
+	"github.com/cometbft/cometbft/config"
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/libs/log"
-	tmnode "github.com/cometbft/cometbft/node"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmstore "github.com/cometbft/cometbft/store"
-	"cosmossdk.io/store"
+	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 
@@ -32,19 +34,19 @@ var (
 type Source struct {
 	Initialized bool
 
-	StoreDB db.DB
+	StoreDB dbm.DB
 
 	Codec       codec.Codec
 	LegacyAmino *codec.LegacyAmino
 
 	BlockStore *tmstore.BlockStore
-	Logger     log.Logger
-	Cms        sdk.CommitMultiStore
+	Logger     sdklog.Logger
+	Cms        storetypes.CommitMultiStore
 }
 
 // NewSource returns a new Source instance
 func NewSource(home string, encodingConfig params.EncodingConfig) (*Source, error) {
-	levelDB, err := db.NewGoLevelDB("application", path.Join(home, "data"))
+	levelDB, err := dbm.NewGoLevelDB("application", path.Join(home, "data"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +56,13 @@ func NewSource(home string, encodingConfig params.EncodingConfig) (*Source, erro
 		return nil, err
 	}
 
-	blockStoreDB, err := tmnode.DefaultDBProvider(&tmnode.DBContext{ID: "blockstore", Config: tmCfg})
+	blockStoreDB, err := config.DefaultDBProvider(&config.DBContext{ID: "blockstore", Config: tmCfg})
 	if err != nil {
 		return nil, err
 	}
 
+	logger := sdklog.NewLogger(log.NewSyncWriter(os.Stdout)).With("module", "explorer")
+	metrics := metrics.NewNoOpMetrics() // TODO add proper metrics
 	return &Source{
 		StoreDB: levelDB,
 
@@ -66,8 +70,8 @@ func NewSource(home string, encodingConfig params.EncodingConfig) (*Source, erro
 		LegacyAmino: encodingConfig.Amino,
 
 		BlockStore: tmstore.NewBlockStore(blockStoreDB),
-		Logger:     log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "explorer"),
-		Cms:        store.NewCommitMultiStore(levelDB),
+		Logger:     logger,
+		Cms:        store.NewCommitMultiStore(levelDB, logger, metrics),
 	}, nil
 }
 
@@ -160,7 +164,7 @@ func (k Source) InitStores() error {
 // It returns a new Context that can be used to query the data, or an error if something wrong happens.
 func (k Source) LoadHeight(height int64) (sdk.Context, error) {
 	var err error
-	var cms sdk.CacheMultiStore
+	var cms storetypes.CacheMultiStore
 	if height > 0 {
 		cms, err = k.Cms.CacheMultiStoreWithVersion(height)
 		if err != nil {

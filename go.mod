@@ -323,11 +323,3 @@ require (
 	pgregory.net/rapid v1.1.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace (
-	github.com/cosmos/cosmos-sdk/x/capability => github.com/cosmos/ibc-go/modules/capability v1.0.0
-	github.com/cosmos/cosmos-sdk/x/evidence => cosmossdk.io/x/evidence v0.1.0
-	github.com/cosmos/cosmos-sdk/x/feegrant => cosmossdk.io/x/feegrant v0.1.0
-	github.com/cosmos/cosmos-sdk/x/nft => cosmossdk.io/x/nft v0.1.0
-	github.com/cosmos/cosmos-sdk/x/upgrade => cosmossdk.io/x/upgrade v0.1.1
-)
